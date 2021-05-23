@@ -367,7 +367,7 @@ _sp_multi_pathadd() {
         done
     done
 }
-_sp_multi_pathadd MODULEPATH "$_sp_tcl_roots"
+_sp_multi_pathadd MODULEPATH "$_sp_lmod_roots"
 
 # Add programmable tab completion for Bash
 #

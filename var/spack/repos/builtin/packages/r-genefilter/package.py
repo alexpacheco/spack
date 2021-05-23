@@ -13,6 +13,8 @@ class RGenefilter(RPackage):
     homepage = "https://bioconductor.org/packages/genefilter"
     git      = "https://git.bioconductor.org/packages/genefilter.git"
 
+    version('1.72.1', sha256='3693641d6eca6c6c3cf54ac17e30c80884a5b753bb6c88cf491ade2d2d1ed0b0',
+                      url='https://bioconductor.org/packages/release/bioc/src/contrib/genefilter_1.72.1.tar.gz')
     version('1.66.0', commit='1c4c471ccca873bf92dcf0b50f611eaa64c4f0cf')
     version('1.64.0', commit='82e91b7751bae997b9c898c219ea201fd02a8512')
     version('1.62.0', commit='eb119894f015c759f93f458af7733bdb770a22ad')

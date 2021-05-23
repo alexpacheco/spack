@@ -22,6 +22,14 @@ class Trinity(MakefilePackage):
     homepage = "http://trinityrnaseq.github.io/"
     url      = "https://github.com/trinityrnaseq/trinityrnaseq/archive/Trinity-v2.6.6.tar.gz"
 
+    version('2.12.0', sha256='0d47dc433cc3003e1c732b97da605e29c6ccafa38cd52cdb8ecc42399a9195d0',
+        url='https://github.com/trinityrnaseq/trinityrnaseq/releases/download/v2.12.0/trinityrnaseq-v2.12.0.FULL.tar.gz')
+#    version('2.11.0', tag='v2.11.0')
+#    version('2.10.0', tag='v2.10.0')
+#    version('2.9.1', tag='v2.9.1')
+#    version('2.9.0',tag='v2.9.0')
+#    version('2.8.6',tag='v2.8.6')
+#    version('2.8.5',tag='v2.8.5')
     version('2.6.6', sha256='868dfadeefaf2d3c6150a88d5e86fbc09466d69bbf4a65f70b4f5a7485668984')
 
     depends_on("java@8:", type=("build", "run"))
@@ -31,6 +39,7 @@ class Trinity(MakefilePackage):
     depends_on("perl+threads", type=("build", "run"))
     depends_on("autoconf", type="build")
     depends_on("automake", type="build")
+    depends_on("cmake", type="build", when='@2.8.5:')
     depends_on("libtool", type="build")
 
     # There is no documented list of these deps, but they're in the Dockerfile
@@ -62,6 +71,17 @@ class Trinity(MakefilePackage):
     depends_on("r-goplot", type="run")
     depends_on("r-argparse", type="run")
     depends_on("r-sm", type="run")
+    depends_on("r-vioplot", type="run", when='@2.8.5:')
+    depends_on("r-dexseq", type="run", when='@2.8.5:')
+    depends_on("r-tximport", type="run", when='@2.8.5:')
+    depends_on("r-tximportdata", type="run", when='@2.8.5:')
+    depends_on("py-multiqc", type="run", when='@2.8.5:')
+# FeatureCounts
+    depends_on("subread", type="run", when='@2.8.6:')
+    depends_on("hisat2", type="run", when='@2.8.6:')
+    depends_on("gmap-gsnap", type="run", when='@2.8.6:')
+    depends_on("picard", type="run", when='@2.8.6:')
+    depends_on("py-htseq", type="run", when='@2.9.0:')
 
     def build(self, spec, prefix):
         make()

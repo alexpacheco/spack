@@ -17,6 +17,7 @@ class Relion(CMakePackage, CudaPackage):
 
     # 3.1 is beta but referenced in published papers
     # prefer stable 3.0 until no longer beta
+    version('3.1.1', tag='3.1.1')
     version('3.1_beta', branch='ver3.1')
 
     # 3.0.8 latest release in 3.0 branch
@@ -73,7 +74,7 @@ class Relion(CMakePackage, CudaPackage):
         # these new values were added in relion 3
         # do not seem to cause problems with < 3
         else:
-            args += ['-DMKLFFT=ON', '-DFORCE_OWN_TBB=ON', '-DALTCPU=ON']
+            args += ['-DMKLFFT=ON', '-DFORCE_OWN_TBB=OFF', '-DALTCPU=ON']
 
         return args
 
