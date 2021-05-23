@@ -20,8 +20,8 @@ class PyPymol(PythonPackage):
 
     depends_on('python+tkinter', type=('build', 'run'))
     depends_on('freetype', type=('build', 'run'))
-    depends_on('glew', type=('build'))
-    depends_on('glm', type=('build'))
+    depends_on('glew', type=('build', 'link'))
+    depends_on('glm', type=('build', 'link'))
     depends_on('py-numpy', type=('build', 'run'))
     depends_on('tcsh', type=('build', 'run'))
     depends_on('py-pyqt5', type=('build', 'run'))

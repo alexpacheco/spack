@@ -315,7 +315,8 @@ class Openfoam(Package):
     depends_on('zlib')
     depends_on('fftw')
     depends_on('boost')
-    depends_on('cgal')
+    # OpenFOAM does not play nice with CGAL 5.X
+    depends_on('cgal@:4.99')
     # The flex restriction is ONLY to deal with a spec resolution clash
     # introduced by the restriction within scotch!
     depends_on('flex@:2.6.1,2.6.4:')
@@ -361,7 +362,7 @@ class Openfoam(Package):
     # default: 'mplib': 'USERMPI',  # User-defined mpi for spack
     config = {
         # Add links into bin/, lib/ (eg, for other applications)
-        'link':  False
+        'link':  True
     }
 
     # The openfoam architecture, compiler information etc
