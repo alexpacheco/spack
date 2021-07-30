@@ -27,6 +27,8 @@ class PyEspresso(CMakePackage):
     version('4.0.1', sha256='17b7268eeba652a77f861bc534cdd05d206e7641d203a9dd5029b44bd422304b')
     version('4.0.0', sha256='8e128847447eebd843de24be9b4ad14aa19c028ae48879a5a4535a9683836e6b')
 
+    variant('cuda', default=False, description='Enable CUDA support')
+
     # espressomd/espresso#2244 merge upstream
     patch('2244.patch', when="@4.0.0")
 
@@ -38,3 +40,11 @@ class PyEspresso(CMakePackage):
     depends_on("py-numpy", type=("build", "run"))
     depends_on("fftw")
     depends_on("hdf5+hl+mpi")
+    depends_on('cuda@10.0.0:', when='+cuda')
+
+#    def cmake_args(self):
+#        options = []
+#        if '+cuda' in self.spec:
+#            options.append('-D WITH_CUDA=ON')
+#            options.append('-D WITH_CUDA_COMPILER=nvcc')
+
