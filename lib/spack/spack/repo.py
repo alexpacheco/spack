@@ -1,4 +1,4 @@
-# Copyright 2013-2020 Lawrence Livermore National Security, LLC and other
+# Copyright 2013-2021 Lawrence Livermore National Security, LLC and other
 # Spack Project Developers. See the top-level COPYRIGHT file for details.
 #
 # SPDX-License-Identifier: (Apache-2.0 OR MIT)
@@ -17,29 +17,31 @@ import stat
 import sys
 import traceback
 import types
-
-try:
-    from collections.abc import Mapping  # novm
-except ImportError:
-    from collections import Mapping
+from typing import Dict  # novm
 
 import six
 
+if sys.version_info >= (3, 5):
+    from collections.abc import Mapping  # novm
+else:
+    from collections import Mapping
+
 import ruamel.yaml as yaml
 
+import llnl.util.filesystem as fs
 import llnl.util.lang
 import llnl.util.tty as tty
-import llnl.util.filesystem as fs
-import spack.config
+
 import spack.caches
+import spack.config
 import spack.error
 import spack.patch
-import spack.spec
-import spack.util.spack_json as sjson
-import spack.util.imp as simp
 import spack.provider_index
-import spack.util.path
+import spack.spec
+import spack.util.imp as simp
 import spack.util.naming as nm
+import spack.util.path
+import spack.util.spack_json as sjson
 
 #: Super-namespace for all packages.
 #: Package modules are imported as spack.pkg.<namespace>.<pkg-name>.
@@ -118,7 +120,11 @@ class SpackNamespace(types.ModuleType):
     def __getattr__(self, name):
         """Getattr lazily loads modules if they're not already loaded."""
         submodule = self.__package__ + '.' + name
-        setattr(self, name, __import__(submodule))
+        try:
+            setattr(self, name, __import__(submodule))
+        except ImportError:
+            msg = "'{0}' object has no attribute {1}"
+            raise AttributeError(msg.format(type(self), name))
         return getattr(self, name)
 
 
@@ -131,7 +137,7 @@ class FastPackageChecker(Mapping):
     during instance initialization.
     """
     #: Global cache, reused by every instance
-    _paths_cache = {}
+    _paths_cache = {}  # type: Dict[str, Dict[str, os.stat_result]]
 
     def __init__(self, packages_path):
         # The path of the repository managed by this instance
@@ -149,7 +155,7 @@ class FastPackageChecker(Mapping):
         self._paths_cache[self.packages_path] = self._create_new_cache()
         self._packages_to_stats = self._paths_cache[self.packages_path]
 
-    def _create_new_cache(self):
+    def _create_new_cache(self):  # type: () -> Dict[str, os.stat_result]
         """Create a new cache for packages in a repo.
 
         The implementation here should try to minimize filesystem
@@ -159,7 +165,7 @@ class FastPackageChecker(Mapping):
         """
         # Create a dictionary that will store the mapping between a
         # package name and its stat info
-        cache = {}
+        cache = {}  # type: Dict[str, os.stat_result]
         for pkg_name in os.listdir(self.packages_path):
             # Skip non-directories in the package root.
             pkg_dir = os.path.join(self.packages_path, pkg_name)
@@ -341,7 +347,7 @@ class PatchIndexer(Indexer):
     def _create(self):
         return spack.patch.PatchCache()
 
-    def needs_update():
+    def needs_update(self):
         # TODO: patches can change under a package and we should handle
         # TODO: it, but we currently punt. This should be refactored to
         # TODO: check whether patches changed each time a package loads,
@@ -656,7 +662,7 @@ class RepoPath(object):
         if namespace:
             fullspace = get_full_namespace(namespace)
             if fullspace not in self.by_namespace:
-                raise UnknownNamespaceError(spec.namespace)
+                raise UnknownNamespaceError(namespace)
             return self.by_namespace[fullspace]
 
         # If there's no namespace, search in the RepoPath.
@@ -914,8 +920,12 @@ class Repo(object):
     @autospec
     def get(self, spec):
         """Returns the package associated with the supplied spec."""
-        if not self.exists(spec.name):
-            raise UnknownPackageError(spec.name)
+        # NOTE: we only check whether the package is None here, not whether it
+        # actually exists, because we have to load it anyway, and that ends up
+        # checking for existence. We avoid constructing FastPackageChecker,
+        # which will stat all packages.
+        if spec.name is None:
+            raise UnknownPackageError(None, self)
 
         if spec.namespace and spec.namespace != self.namespace:
             raise UnknownPackageError(spec.name, self.namespace)
@@ -1060,7 +1070,16 @@ class Repo(object):
 
     def exists(self, pkg_name):
         """Whether a package with the supplied name exists."""
-        return pkg_name in self._pkg_checker
+        if pkg_name is None:
+            return False
+
+        # if the FastPackageChecker is already constructed, use it
+        if self._fast_package_checker:
+            return pkg_name in self._pkg_checker
+
+        # if not, check for the package.py file
+        path = self.filename_for_package_name(pkg_name)
+        return os.path.exists(path)
 
     def last_mtime(self):
         """Time a package file in this repo was last updated."""
@@ -1256,23 +1275,6 @@ def set_path(repo):
 
 
 @contextlib.contextmanager
-def swap(repo_path):
-    """Temporarily use another RepoPath."""
-    global path
-
-    # swap out _path for repo_path
-    saved = path
-    remove_from_meta = set_path(repo_path)
-
-    yield
-
-    # restore _path and sys.meta_path
-    if remove_from_meta:
-        sys.meta_path.remove(repo_path)
-    path = saved
-
-
-@contextlib.contextmanager
 def additional_repository(repository):
     """Adds temporarily a repository to the default one.
 
@@ -1282,6 +1284,39 @@ def additional_repository(repository):
     path.put_first(repository)
     yield
     path.remove(repository)
+
+
+@contextlib.contextmanager
+def use_repositories(*paths_and_repos):
+    """Use the repositories passed as arguments within the context manager.
+
+    Args:
+        *paths_and_repos: paths to the repositories to be used, or
+            already constructed Repo objects
+
+    Returns:
+        Corresponding RepoPath object
+    """
+    global path
+
+    remove_from_meta = None
+
+    # Construct a temporary RepoPath object from
+    temporary_repositories = RepoPath(*paths_and_repos)
+
+    # Swap the current repository out
+    saved = path
+
+    try:
+        remove_from_meta = set_path(temporary_repositories)
+
+        yield temporary_repositories
+
+    finally:
+        # Restore _path and sys.meta_path
+        if remove_from_meta:
+            sys.meta_path.remove(temporary_repositories)
+        path = saved
 
 
 class RepoError(spack.error.SpackError):
@@ -1316,7 +1351,7 @@ class UnknownPackageError(UnknownEntityError):
         long_msg = None
         if name:
             if repo:
-                msg = "Package '{0}' not found in repository '{1}'"
+                msg = "Package '{0}' not found in repository '{1.root}'"
                 msg = msg.format(name, repo)
             else:
                 msg = "Package '{0}' not found.".format(name)
