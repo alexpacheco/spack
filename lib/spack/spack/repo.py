@@ -1299,24 +1299,19 @@ def use_repositories(*paths_and_repos):
     """
     global path
 
-    remove_from_meta = None
-
     # Construct a temporary RepoPath object from
     temporary_repositories = RepoPath(*paths_and_repos)
 
     # Swap the current repository out
     saved = path
+    remove_from_meta = set_path(temporary_repositories)
 
-    try:
-        remove_from_meta = set_path(temporary_repositories)
+    yield temporary_repositories
 
-        yield temporary_repositories
-
-    finally:
-        # Restore _path and sys.meta_path
-        if remove_from_meta:
-            sys.meta_path.remove(temporary_repositories)
-        path = saved
+    # Restore _path and sys.meta_path
+    if remove_from_meta:
+        sys.meta_path.remove(temporary_repositories)
+    path = saved
 
 
 class RepoError(spack.error.SpackError):
