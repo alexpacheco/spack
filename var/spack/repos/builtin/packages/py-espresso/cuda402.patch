@@ -1,0 +1,31 @@
+--- spack-src/CMakeLists.txt.bak	2019-04-26 09:43:39.000000000 -0400
++++ spack-src/CMakeLists.txt	2022-02-28 14:32:02.438084742 -0500
+@@ -141,9 +141,9 @@
+     list(APPEND LIBRARIES ${CUFFT_LIBRARY})
+     set(CUDA 1)
+ 
+-    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --cuda-gpu-arch=sm_30")
++    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --cuda-gpu-arch=sm_52")
+     if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 3.8.9)
+-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --cuda-gpu-arch=sm_52")
++      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} --cuda-gpu-arch=sm_61")
+     endif()
+ 
+     function(cuda_include_directories)
+@@ -179,7 +179,15 @@
+       set(CUDA_NVCC_FLAGS_RELEASE "${CUDA_NVCC_FLAGS_RELEASE} -O3 -DNDEBUG")
+       set(CUDA_NVCC_FLAGS_MINSIZEREL "${CUDA_NVCC_FLAGS_MINSIZEREL} -Os -DNDEBUG")
+       set(CUDA_NVCC_FLAGS_RELWITHDEBINFO "${CUDA_NVCC_FLAGS_RELWITHDEBINFO} -g -G -O2")
+-      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_52,code=compute_52")
++      if (CUDA_VERSION VERSION_LESS "8.0")
++        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode=arch=compute_30,code=sm_30 -gencode=arch=compute_52,code=sm_52 -gencode=arch=compute_52,code=compute_52")
++      endif()
++      if (CUDA_VERSION VERSION_GREATER "8.0")
++        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode=arch=compute_61,code=sm_61 -gencode=arch=compute_75,code=sm_75")
++      endif()
++      if (CUDA_VERSION VERSION_GREATER "11.5.9")
++        list(APPEND CUDA_NVCC_FLAGS "-gencode=arch=compute_80,code=sm_80 -gencode=arch=compute_86,code=sm_86 -gencode=arch=compute_87,code=sm_87")
++      endif()
+       list(APPEND CUDA_NVCC_FLAGS "-std=c++11")
+       if (CUDA_VERSION VERSION_LESS "8.0" AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER "5.0")
+         list(APPEND CUDA_NVCC_FLAGS "-D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES")

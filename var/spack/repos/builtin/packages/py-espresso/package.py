@@ -41,6 +41,7 @@ class PyEspresso(CMakePackage):
     depends_on("fftw")
     depends_on("hdf5+hl+mpi")
     depends_on('cuda@10.0.0:', when='+cuda')
+    patch('cuda402.patch', when="@4.0.2 +cuda")
 
 #    def cmake_args(self):
 #        options = []
