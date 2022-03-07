@@ -21,6 +21,13 @@ class Gromacs(CMakePackage):
     maintainers = ['junghans', 'marvinbernhardt']
 
     version('master', branch='master')
+    version('2021.4', sha256='cb708a3e3e83abef5ba475fdb62ef8d42ce8868d68f52dafdb6702dc9742ba1d')
+    version('2021.3', sha256='e109856ec444768dfbde41f3059e3123abdb8fe56ca33b1a83f31ed4575a1cc6')
+    version('2021.2', sha256='d940d865ea91e78318043e71f229ce80d32b0dc578d64ee5aa2b1a4be801aadb')
+    version('2021.1', sha256='bc1d0a75c134e1fb003202262fe10d3d32c59bbb40d714bc3e5015c71effe1e5')
+    version('2021', sha256='efa78ab8409b0f5bf0fbca174fb8fbcf012815326b5c71a9d7c385cde9a8f87b')
+    version('2020.6', sha256='d8bbe57ed3c9925a8cb99ecfe39e217f930bed47d5268a9e42b33da544bdb2ee')
+    version('2020.5', sha256='7b6aff647f7c8ee1bf12204d02cef7c55f44402a73195bd5f42cf11850616478')
     version('2020.4', sha256='5519690321b5500c7951aaf53ff624042c3edd1a5f5d6dd1f2d802a3ecdbf4e6')
     version('2020.3', sha256='903183691132db14e55b011305db4b6f4901cc4912d2c56c131edfef18cc92a9')
     version('2020.2', sha256='7465e4cd616359d84489d919ec9e4b1aaf51f0a4296e693c249e83411b7bd2f3')
@@ -133,10 +140,20 @@ class Gromacs(CMakePackage):
         else:
             options.append('-DGMX_HWLOC:BOOL=OFF')
 
-        if '+cuda' in self.spec or '+opencl' in self.spec:
-            options.append('-DGMX_GPU:BOOL=ON')
+        if self.version >= Version('2021'):
+            if '+cuda' in self.spec:
+                options.append('-DGMX_GPU:STRING=CUDA')
+            elif '+opencl' in self.spec:
+                options.append('-DGMX_GPU:STRING=OpenCL')
+            elif '+sycl' in self.spec:
+                options.append('-DGMX_GPU:STRING=SYCL')
+            else:
+                options.append('-DGMX_GPU:STRING=OFF')
         else:
-            options.append('-DGMX_GPU:BOOL=OFF')
+            if '+cuda' in self.spec or '+opencl' in self.spec:
+                options.append('-DGMX_GPU:BOOL=ON')
+            else:
+                options.append('-DGMX_GPU:BOOL=OFF')
 
         if '+cuda' in self.spec:
             options.append('-DCUDA_TOOLKIT_ROOT_DIR:STRING=' +
